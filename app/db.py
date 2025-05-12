@@ -1,7 +1,8 @@
+"""Module for database initialization"""
+
 from app.config import settings as cnf
 from sqlmodel import create_engine, Session, SQLModel
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from .schemas import task as schema_task
 
 DB_URL = f"postgresql://{cnf.db_username}:{cnf.db_password}@{cnf.db_host}:{cnf.db_port}/{cnf.db_name}"
 ASYNC_DB_URL = f"postgresql+asyncpg://{cnf.db_username}:{cnf.db_password}@{cnf.db_host}:{cnf.db_port}/{cnf.db_name}"

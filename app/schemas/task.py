@@ -1,10 +1,12 @@
+"""Models for DM"""
+
 from datetime import date, timedelta, datetime
+from enum import Enum
+from typing import Optional, Annotated, TypeAlias
 from pydantic import (BaseModel, Field, BeforeValidator, EmailStr)
 from pydantic_settings import SettingsConfigDict
-from typing import Optional, Annotated, TypeAlias
 from sqlalchemy import UniqueConstraint
 from sqlmodel import SQLModel, Field as SQLField
-from enum import Enum
 
 
 def _empty_str_or_none(value: str | None) -> None:
@@ -16,11 +18,13 @@ def _empty_str_or_none(value: str | None) -> None:
 EmptyStrOrNone: TypeAlias = Annotated[None, BeforeValidator(_empty_str_or_none)]
 
 class TaskStatus(str, Enum):
+    """ENUM for task_status parameter"""
     OPEN = "open"
     IN_PROGRESS = "in_progress"
     CLOSED = "closed"
 
 class TaskCreate(BaseModel):
+    """Model for Task"""
     task_description: str = Field(
         description="Описание задачи",
         max_length=300
@@ -44,6 +48,7 @@ class TaskCreate(BaseModel):
 
 
 class TaskRead(TaskCreate):
+    """Model for Task responce"""
     task_id: int
     due_date: EmptyStrOrNone | date
     start_date: EmptyStrOrNone | datetime
@@ -51,6 +56,7 @@ class TaskRead(TaskCreate):
 
 
 class User(SQLModel, table=True):
+    """Model for User"""
     __table_args__ = (UniqueConstraint("email"),)
     user_id: int = SQLField(default=None, nullable=False, primary_key=True)
     email: str = SQLField(nullable=True, unique_items=True)
@@ -67,6 +73,7 @@ class User(SQLModel, table=True):
         })
 
 class UserCrendentials(BaseModel):
+    """Model for User's credentials"""
     email: EmailStr
     password: str
 
@@ -79,12 +86,14 @@ class UserCrendentials(BaseModel):
         })
 
 class Project(SQLModel, table=True):
+    """Model and table for Projects"""
     project_id: int = SQLField(default=None, nullable=False, primary_key=True)
     project_name: str
     project_description: str | None
 
 
 class Task(SQLModel, TaskRead, table=True):
+    """Table for Users"""
     task_id: int = SQLField(default=None, nullable=False, primary_key=True)
     due_date: date
     assignee: int = SQLField(foreign_key="user.user_id")
@@ -95,6 +104,7 @@ class Task(SQLModel, TaskRead, table=True):
     created_when: datetime = SQLField(default_factory=datetime.now)
 
 class ProjectStatistics(SQLModel, table=True):
+    """Table for reporting info"""
     stat_id: int = SQLField(default=None, primary_key=True)
     project_id: int = SQLField(foreign_key="project.project_id")
     snapshot_date: date = SQLField(default_factory=date.today)  # Дата снимка

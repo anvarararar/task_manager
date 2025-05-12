@@ -1,3 +1,5 @@
+"""Initialize FastAPI and DB"""
+
 from fastapi import FastAPI
 from app.routes import (task, utils, async_routes, auth)
 from contextlib import asynccontextmanager  # Uncomment if you need to create tables on app start >>>

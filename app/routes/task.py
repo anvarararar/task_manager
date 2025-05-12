@@ -1,13 +1,15 @@
+"""Main module with API methods"""
+
+from typing import Annotated, List
+from datetime import date, datetime
+from typing import Dict
+from fastapi import Query
+from sqlalchemy import func
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlmodel import Session, select
 from app.db import get_session
 from ..schemas import task as schema_task
-from typing import Annotated, List
 from ..api_docs import request_examples
-from datetime import date, timedelta, datetime
-from fastapi import Query
-from typing import Dict
-from sqlalchemy import func
 from ..auth.auth_handler import get_current_user
 
 router_tasks = APIRouter(prefix="/tasks", tags=["Управление задачами в БД"])
@@ -34,13 +36,15 @@ def create_project(project: Annotated[
     session.refresh(new_project)
     return new_project
 
-@router_projects.patch("/{project_id}", status_code=status.HTTP_200_OK, response_model=schema_task.Project,
+@router_projects.patch("/{project_id}",
+                        status_code=status.HTTP_200_OK, response_model=schema_task.Project,
                     summary = 'Update Project by ID')
 def update_project_by_id(project_id: int, data_for_update: dict,
                          current_user: Annotated[schema_task.User, Depends(get_current_user)],
                          session: Session = Depends(get_session)):
     """Update Project by id"""
-    project = session.exec(select(schema_task.Project).where(schema_task.Project.project_id == project_id)).first()
+    project = session.exec(select(schema_task.Project).
+                           where(schema_task.Project.project_id == project_id)).first()
     if project is None:
         raise HTTPException(
             status_code=status.HTTP_204_NO_CONTENT,
@@ -85,7 +89,7 @@ def read_projects(session: Session = Depends(get_session)):
         )
     return projects
 
-@router_projects.get("/{project_id}/statistics", 
+@router_projects.get("/{project_id}/statistics",
             response_model=schema_task.ProjectStatistics,
             summary = 'Retrieve Project statistics')
 def get_project_statistics(
@@ -95,25 +99,26 @@ def get_project_statistics(
     Получить статистику проекта по задачам.
     """
     # Проверяем существование проекта
-    project = session.exec(select(schema_task.Project).where(schema_task.Project.project_id == project_id)).first()
+    project = session.exec(select(schema_task.Project).
+                           where(schema_task.Project.project_id == project_id)).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
     tasks = session.exec(
         select(schema_task.Task).where(schema_task.Task.project == project_id)).all()
-    
+
     total_tasks = len(tasks)
     open_tasks = sum(1 for t in tasks if t.task_status == schema_task.TaskStatus.OPEN)
     in_progress_tasks = sum(1 for t in tasks if t.task_status == schema_task.TaskStatus.IN_PROGRESS)
     closed_tasks = sum(1 for t in tasks if t.task_status == schema_task.TaskStatus.CLOSED)
 
     completed_tasks = [
-        t for t in tasks 
-        if t.task_status == schema_task.TaskStatus.CLOSED 
-        and t.start_date 
+        t for t in tasks
+        if t.task_status == schema_task.TaskStatus.CLOSED
+        and t.start_date
         and t.close_date
     ]
-    
+
     if completed_tasks:
         durations = [
             (t.close_date - t.start_date).total_seconds() / 86400  # Конвертация в дни
@@ -122,11 +127,11 @@ def get_project_statistics(
         avg_completion_time = round(sum(durations) / len(durations), 4)
 
     responded_tasks = [
-        t for t in tasks 
+        t for t in tasks
         if t.start_date is not None
         and t.created_when
     ]
-    
+
     if responded_tasks:
         response_times = [
             (t.start_date - t.created_when).total_seconds() / 86400
@@ -136,7 +141,7 @@ def get_project_statistics(
 
     if not completed_tasks:
         avg_completion_time = 0.0
-    
+
     if not responded_tasks:
         avg_response_times = 0.0
 
@@ -156,12 +161,13 @@ def get_project_statistics(
     session.refresh(stats)
     return stats
 
-@router_projects.get("/{project_id}/statistics/latest", 
+@router_projects.get("/{project_id}/statistics/latest",
                      response_model=schema_task.ProjectStatistics,
                      summary = 'Retrieve latest Project statistics by date')
 def get_latest_statistics_snapshot(
     project_id: int,
-    snapshot_date: date = Query(..., description="Дата снимка в формате YYYY-MM-DD",example="2024-05-20"),
+    snapshot_date: date = Query(..., description="Дата снимка в формате YYYY-MM-DD",
+                                example="2024-05-20"),
     session: Session = Depends(get_session)
 ):
     """
@@ -173,8 +179,8 @@ def get_latest_statistics_snapshot(
             schema_task.ProjectStatistics.project_id == project_id,
             schema_task.ProjectStatistics.snapshot_date == snapshot_date
         )
-        .order_by(schema_task.ProjectStatistics.stat_id.desc()) 
-        .limit(1) 
+        .order_by(schema_task.ProjectStatistics.stat_id.desc())
+        .limit(1)
     ).first()
 
     if not latest_snapshot:
@@ -240,13 +246,15 @@ def create_task(task: Annotated[
     """
     Добавить задачу.
     """
-    assignee = session.exec(select(schema_task.User).where(schema_task.User.user_id == task.assignee)).first()
+    assignee = session.exec(select(schema_task.User).where(schema_task.User.user_id
+                                                           == task.assignee)).first()
     if assignee is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"There is no User specified."
         )
-    project = session.exec(select(schema_task.Project).where(schema_task.Project.project_id == task.project)).first()
+    project = session.exec(select(schema_task.Project).where(schema_task.Project.project_id
+                                                              == task.project)).first()
     if project is None:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -284,7 +292,8 @@ def read_tasks(session: Session = Depends(get_session)):
 def read_task_by_id(task_id: int,
                     session: Session = Depends(get_session)):
     """Read task by id"""
-    task = session.exec(select(schema_task.Task).where(schema_task.Task.task_id == task_id)).first()
+    task = session.exec(select(schema_task.Task).where(schema_task.Task.task_id
+                                                       == task_id)).first()
     if task is None:
         raise HTTPException(
             status_code=status.HTTP_204_NO_CONTENT,
@@ -292,7 +301,7 @@ def read_task_by_id(task_id: int,
         )
     return task
 
-@router_tasks.patch("/{task_id}/status", status_code=status.HTTP_200_OK, 
+@router_tasks.patch("/{task_id}/status", status_code=status.HTTP_200_OK,
               response_model=schema_task.TaskRead,
               summary = 'Update Task status')
 def update_task_status(
@@ -303,27 +312,29 @@ def update_task_status(
     """
     Обновить статус задачи.
     """
-    task = session.exec(select(schema_task.Task).where(schema_task.Task.task_id == task_id)).first()
+    task = session.exec(select(schema_task.Task).where(schema_task.Task.
+                                                       task_id == task_id)).first()
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"There is no Task specified."
         )
-    
+
     task.task_status = new_status
-    
+
     # Автоматическое обновление дат
     if new_status == schema_task.TaskStatus.IN_PROGRESS:
         task.start_date = datetime.now()
     elif new_status == schema_task.TaskStatus.CLOSED:
         task.close_date = datetime.now()
-    
+
     session.add(task)
     session.commit()
     session.refresh(task)
     return task
 
-@router_tasks.patch("/{task_id}", status_code=status.HTTP_200_OK, response_model=schema_task.TaskRead,
+@router_tasks.patch("/{task_id}", status_code=status.HTTP_200_OK, response_model=schema_task.
+                    TaskRead,
                     summary = 'Update Task by ID')
 def update_task_by_id(task_id: int, data_for_update: dict,
                       current_user: Annotated[schema_task.User, Depends(get_current_user)],
