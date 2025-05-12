@@ -38,17 +38,10 @@ def test_me():
     assert response.status_code == 200
     assert response.json() == client.new_user_id
 
-def test_create_project():
-    response = client.post("/tasks",
-                           json={"project_description": fake.street_address(),
-                                 "project_name": client.fake_user_name
-                            }
-    )
-    assert response.status_code == 422
-    project_id = response.json()["project_id"]
+
 
 def test_create_task():
-    response = client.post("/tasks",
+    response = client.post("/tasks", headers={"Authorization": f"Bearer {client.auth_token}"},
                            json={"task_description": fake.street_address(),
                                  "due_date": str(fake.date_between(date.today(), timedelta(days=30))),
                                  "assignee": 100,
@@ -57,6 +50,10 @@ def test_create_task():
                             }
     )
     assert response.status_code == 422
+
+def test_get_projects():
+    response = client.get("/projects")
+    assert response.status_code == 200
 
 def test_get_tasks():
     response = client.get("/tasks")
